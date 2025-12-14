@@ -14,12 +14,12 @@ export default function useRankingData() {
     const scoresRef = collection(firestore, 'scores')
     const bestClassRef = doc(firestore, 'bestClass', 'ranking')
 
-    const unsubEvents = onSnapshot(query(eventsRef, orderBy('quarter'), orderBy('createdAt')), (snapshot) => {
+    const unsubEvents = onSnapshot(query(eventsRef, orderBy('quarter', 'asc'), orderBy('name', 'asc')), (snapshot) => {
       const list = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
       setEvents(list)
     })
 
-    const unsubClasses = onSnapshot(query(classesRef, orderBy('name')), (snapshot) => {
+    const unsubClasses = onSnapshot(query(classesRef, orderBy('name', 'asc')), (snapshot) => {
       const list = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
       setClasses(list)
     })

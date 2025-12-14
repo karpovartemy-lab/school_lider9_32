@@ -420,6 +420,17 @@ button.secondary {
   gap: 6px;
 }
 
+.debug-panel ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.debug-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
 @media (max-width: 1024px) {
   .grid {
     grid-template-columns: 1fr;
