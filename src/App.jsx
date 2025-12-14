@@ -78,7 +78,7 @@ export default function App() {
       setUser(currentUser)
       setIsCheckingAuth(false)
       if (currentUser) {
-        const hasAdminAccess = await isAdmin(currentUser.uid, currentUser.email)
+        const hasAdminAccess = await isAdmin(currentUser.uid)
         setIsAdmin(hasAdminAccess)
       } else {
         setIsAdmin(false)
