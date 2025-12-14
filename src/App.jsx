@@ -141,16 +141,8 @@ export default function App() {
     event.preventDefault()
     setAuthError('')
     try {
-      const normalizedUsername = username.trim().replace(/\s+/g, '').toLowerCase()
-      const normalizedPassword = password.trim()
-
-      if (!normalizedUsername || !normalizedPassword) {
-        setAuthError('Введите логин и пароль администратора без пробелов.')
-        return
-      }
-
-      const email = `${normalizedUsername}@school.local`
-      await signInWithEmailAndPassword(auth, email, normalizedPassword)
+      const email = `${username}@school.local`
+      await signInWithEmailAndPassword(auth, email, password)
       setUsername('')
       setPassword('')
     } catch (err) {
