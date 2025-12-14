@@ -347,6 +347,79 @@ button.secondary {
   align-items: end;
 }
 
+.best-class-editor {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.best-class-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.best-class-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.actions-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.editable-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.editable-row {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.editable-row .flex {
+  width: 100%;
+}
+
+.editable-row .small {
+  width: 100%;
+}
+
+.checkbox-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.class-checkboxes {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
 @media (max-width: 1024px) {
   .grid {
     grid-template-columns: 1fr;
