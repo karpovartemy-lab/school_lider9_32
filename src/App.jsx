@@ -46,7 +46,7 @@ function Header({ user, isAdmin, onLogout, onLogin, authError, username, passwor
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin1 или admin2"
+                placeholder="admin1 или admin1@school.local"
               />
             </div>
             <div className="input-group">
@@ -55,7 +55,7 @@ function Header({ user, isAdmin, onLogout, onLogin, authError, username, passwor
             </div>
             <button type="submit">Войти</button>
             {authError && <p className="error">{authError}</p>}
-            <p className="muted text-small">Логин отправляется как имя@school.local</p>
+            <p className="muted text-small">Можно вводить короткий логин или полный email.</p>
           </form>
         )}
       </div>
@@ -141,15 +141,16 @@ export default function App() {
     event.preventDefault()
     setAuthError('')
     try {
-      const normalizedUsername = username.trim().replace(/\s+/g, '').toLowerCase()
+      const rawUsername = username.trim()
       const normalizedPassword = password.trim()
 
-      if (!normalizedUsername || !normalizedPassword) {
+      if (!rawUsername || !normalizedPassword) {
         setAuthError('Введите логин и пароль администратора без пробелов.')
         return
       }
 
-      const email = `${normalizedUsername}@school.local`
+      const emailCandidate = rawUsername.includes('@') ? rawUsername : `${rawUsername}@school.local`
+      const email = emailCandidate.replace(/\s+/g, '').toLowerCase()
       await signInWithEmailAndPassword(auth, email, normalizedPassword)
       setUsername('')
       setPassword('')
