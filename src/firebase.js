@@ -1,21 +1,26 @@
-import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
-import { getDatabase } from 'firebase/database'
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
-// TODO: Замените объект ниже на реальные параметры вашего проекта Firebase.
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: 'TODO',
-  authDomain: 'TODO',
-  projectId: 'TODO',
-  storageBucket: 'TODO',
-  messagingSenderId: 'TODO',
-  appId: 'TODO',
-  databaseURL: 'TODO',
-}
+  apiKey: "AIzaSyDafdcFSTURexXb49Nshik2AaZMSY3I-Ok",
+  authDomain: "lider-3bf7f.firebaseapp.com",
+  databaseURL: "https://lider-3bf7f-default-rtdb.firebaseio.com",
+  projectId: "lider-3bf7f",
+  storageBucket: "lider-3bf7f.firebasestorage.app",
+  messagingSenderId: "900376444018",
+  appId: "1:900376444018:web:33b6c1a1ca8773e63a16eb",
+  measurementId: "G-M00X8N0FJX",
+};
 
-const app = initializeApp(firebaseConfig)
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app)
-export const firestore = getFirestore(app)
-export const rtdb = getDatabase(app)
+// Firebase services
+export const auth = getAuth(app);
+export const firestore = getFirestore(app);
+export const rtdb = getDatabase(app);
+
+export default app;
