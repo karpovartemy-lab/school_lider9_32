@@ -9,9 +9,13 @@
   },
   "dependencies": {
     "firebase": "^10.14.0",
+    "handsontable": "^14.3.0",
+    "hyperformula": "^2.7.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "xlsx": "^0.18.5"
+    "react-router-dom": "^6.28.0",
+    "xlsx": "^0.18.5",
+    "@handsontable/react": "^15.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.2",
