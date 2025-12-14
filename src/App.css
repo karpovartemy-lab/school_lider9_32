@@ -1,3 +1,5 @@
+@import 'handsontable/dist/handsontable.full.min.css';
+
 :root {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #0f172a;
@@ -16,15 +18,15 @@ body {
 }
 
 .app {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 32px 20px 64px;
 }
 
 .app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: start;
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -32,6 +34,27 @@ body {
 .app-header h1 {
   margin: 0;
   font-size: 28px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-links a {
+  padding: 10px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #0f172a;
+  background: #e2e8f0;
+  font-weight: 600;
+}
+
+.nav-links a.active {
+  background: #2563eb;
+  color: white;
 }
 
 .muted {
@@ -51,6 +74,11 @@ body {
   min-width: 280px;
 }
 
+.auth-info {
+  display: grid;
+  gap: 6px;
+}
+
 .login-form {
   display: grid;
   gap: 10px;
@@ -61,9 +89,17 @@ body {
   gap: 6px;
 }
 
+.input-group.inline {
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 12px;
+}
+
 input[type='text'],
 input[type='password'],
-input[type='file'] {
+input[type='file'],
+select,
+input[type='number'] {
   padding: 10px 12px;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
@@ -85,6 +121,10 @@ button.secondary {
   color: #0f172a;
 }
 
+.page-wrapper {
+  display: block;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -96,6 +136,10 @@ button.secondary {
 .grid-side {
   display: grid;
   gap: 16px;
+}
+
+.grid-main.full-width {
+  grid-column: 1 / -1;
 }
 
 .card {
@@ -110,6 +154,7 @@ button.secondary {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 12px;
 }
 
@@ -117,13 +162,16 @@ button.secondary {
   overflow: auto;
 }
 
-.rating-table {
+.rating-table,
+.preview-table {
   width: 100%;
   border-collapse: collapse;
 }
 
 .rating-table th,
-.rating-table td {
+.rating-table td,
+.preview-table th,
+.preview-table td {
   border-bottom: 1px solid #e2e8f0;
   padding: 10px;
   text-align: left;
@@ -199,13 +247,6 @@ button.secondary {
   border-collapse: collapse;
 }
 
-.history-table th,
-.history-table td {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 8px;
-  text-align: left;
-}
-
 .error {
   color: #b91c1c;
   font-weight: 600;
@@ -216,8 +257,106 @@ button.secondary {
   gap: 10px;
 }
 
-@media (max-width: 960px) {
+.preview {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.preview-table td:first-child {
+  font-weight: 700;
+  width: 60px;
+}
+
+.preview-table .header-row td {
+  background: #e0f2fe;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.meta-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.podium-item {
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eef2ff, #e0f2fe);
+  border: 1px solid #cbd5e1;
+}
+
+.podium-item .place {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.podium-item.place-1 {
+  background: linear-gradient(135deg, #fef9c3, #fde68a);
+}
+
+.podium-item.place-2 {
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+}
+
+.podium-item.place-3 {
+  background: linear-gradient(135deg, #ffedd5, #fed7aa);
+}
+
+.top-table-wrapper {
+  overflow: auto;
+}
+
+.hot-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.formula-bar {
+  display: grid;
+  gap: 6px;
+  min-width: 320px;
+}
+
+.formula-bar input {
+  width: 100%;
+}
+
+.cell-occupied {
+  background: #fff7ed;
+}
+
+.winners-header {
+  align-items: end;
+}
+
+@media (max-width: 1024px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .app-header {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-links {
+    justify-content: flex-start;
   }
 }

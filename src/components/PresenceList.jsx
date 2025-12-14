@@ -19,7 +19,9 @@ export default function PresenceList({ presence, currentUserId }) {
             <div>
               <div className="presence-name">{entry.name || 'Неизвестно'}</div>
               <div className="muted text-small">
-                {entry.editingRow ? `Редактирует строку ${entry.editingRow}` : 'Просматривает'}
+                {entry.editing?.r !== undefined && entry.editing?.c !== undefined
+                  ? `Редактирует ${entry.editing.r + 1}:${entry.editing.c + 1}`
+                  : 'Просматривает'}
               </div>
             </div>
           </div>

@@ -8,9 +8,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@handsontable/react": "15.3.0",
     "firebase": "^10.14.0",
+    "handsontable": "15.3.0",
+    "hyperformula": "2.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^6.27.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
