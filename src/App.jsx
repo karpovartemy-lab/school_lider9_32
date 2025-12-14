@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
-import { auth, firestore, rtdb } from './firebase'
+import { auth, rtdb } from './firebase'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { isAdmin } from './utils/admin'
 import { onValue, onDisconnect, ref, set as rtdbSet } from 'firebase/database'
 import HomePage from './pages/HomePage'
 import TablePage from './pages/TablePage'
@@ -78,8 +78,8 @@ export default function App() {
       setUser(currentUser)
       setIsCheckingAuth(false)
       if (currentUser) {
-        const adminDoc = await getDoc(doc(firestore, 'admins', currentUser.uid))
-        setIsAdmin(adminDoc.exists())
+        const hasAdminAccess = await isAdmin(currentUser.uid)
+        setIsAdmin(hasAdminAccess)
       } else {
         setIsAdmin(false)
       }

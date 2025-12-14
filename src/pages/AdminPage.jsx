@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { addDoc, collection, deleteDoc, doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
 import PresenceList from '../components/PresenceList'
 import useRankingData from '../hooks/useRankingData'
 import { firestore } from '../firebase'
@@ -37,20 +37,31 @@ export default function AdminPage({ isAdmin, user, presence }) {
 
   const handleAddEvent = async () => {
     if (!eventForm.name.trim()) return
-    await addDoc(collection(firestore, 'events'), {
-      name: eventForm.name.trim(),
-      quarter: Number(eventForm.quarter) || 1,
-      createdAt: serverTimestamp(),
-    })
-    setEventForm({ name: '', quarter: eventForm.quarter })
+    try {
+      await addDoc(collection(firestore, 'events'), {
+        name: eventForm.name.trim(),
+        quarter: Number(eventForm.quarter) || 1,
+        createdAt: serverTimestamp(),
+        createdBy: user?.uid ?? 'unknown',
+      })
+      setEventForm({ name: '', quarter: eventForm.quarter })
+    } catch (error) {
+      console.error('Ошибка сохранения мероприятия:', error)
+      alert(`Ошибка сохранения: ${error.message}`)
+    }
   }
 
   const handleSaveEvents = async (nextEvents) => {
-    const batchWrites = nextEvents.map((item) => setDoc(doc(firestore, 'events', item.id), item))
-    const currentIds = new Set(nextEvents.map((e) => e.id))
-    const deletions = events.filter((e) => !currentIds.has(e.id)).map((e) => deleteDoc(doc(firestore, 'events', e.id)))
-    await Promise.all([...batchWrites, ...deletions])
-    setIsEditingEvents(false)
+    try {
+      const batchWrites = nextEvents.map((item) => setDoc(doc(firestore, 'events', item.id), item))
+      const currentIds = new Set(nextEvents.map((e) => e.id))
+      const deletions = events.filter((e) => !currentIds.has(e.id)).map((e) => deleteDoc(doc(firestore, 'events', e.id)))
+      await Promise.all([...batchWrites, ...deletions])
+      setIsEditingEvents(false)
+    } catch (error) {
+      console.error('Ошибка сохранения списка мероприятий:', error)
+      alert(`Ошибка сохранения: ${error.message}`)
+    }
   }
 
   const handleAddClasses = async () => {
@@ -58,47 +69,70 @@ export default function AdminPage({ isAdmin, user, presence }) {
     if (!base) return
     const suffixes = LETTER_SCHEMES[classForm.scheme]
     const names = suffixes.map((suf) => `${base}${suf}`)
-    await Promise.all(
-      names.map((name) =>
-        addDoc(collection(firestore, 'classes'), {
+    const batch = writeBatch(firestore)
+    try {
+      names.forEach((name) => {
+        const classRef = doc(collection(firestore, 'classes'))
+        batch.set(classRef, {
           name,
           createdAt: serverTimestamp(),
+          createdBy: user?.uid ?? 'unknown',
         })
-      )
-    )
+      })
+      await batch.commit()
+    } catch (error) {
+      console.error('Ошибка массового добавления классов:', error)
+      alert(`Ошибка сохранения: ${error.message}`)
+    }
   }
 
   const handleAddSingleClass = async () => {
     if (!classForm.single.trim()) return
-    await addDoc(collection(firestore, 'classes'), {
-      name: classForm.single.trim(),
-      createdAt: serverTimestamp(),
-    })
-    setClassForm((prev) => ({ ...prev, single: '' }))
+    try {
+      await addDoc(collection(firestore, 'classes'), {
+        name: classForm.single.trim(),
+        createdAt: serverTimestamp(),
+        createdBy: user?.uid ?? 'unknown',
+      })
+      setClassForm((prev) => ({ ...prev, single: '' }))
+    } catch (error) {
+      console.error('Ошибка добавления класса:', error)
+      alert(`Ошибка сохранения: ${error.message}`)
+    }
   }
 
   const handleSaveClasses = async (nextClasses) => {
-    const writers = nextClasses.map((cls) => setDoc(doc(firestore, 'classes', cls.id), cls))
-    const currentIds = new Set(nextClasses.map((c) => c.id))
-    const deletions = classes.filter((c) => !currentIds.has(c.id)).map((c) => deleteDoc(doc(firestore, 'classes', c.id)))
-    await Promise.all([...writers, ...deletions])
-    setIsEditingClasses(false)
+    try {
+      const writers = nextClasses.map((cls) => setDoc(doc(firestore, 'classes', cls.id), cls))
+      const currentIds = new Set(nextClasses.map((c) => c.id))
+      const deletions = classes.filter((c) => !currentIds.has(c.id)).map((c) => deleteDoc(doc(firestore, 'classes', c.id)))
+      await Promise.all([...writers, ...deletions])
+      setIsEditingClasses(false)
+    } catch (error) {
+      console.error('Ошибка сохранения списка классов:', error)
+      alert(`Ошибка сохранения: ${error.message}`)
+    }
   }
 
   const handleAddScore = async () => {
     if (!scoreForm.eventId || scoreForm.classIds.length === 0) return
     const pointsValue = Number(scoreForm.points) || 0
-    const ops = scoreForm.classIds.map((classId) =>
-      setDoc(doc(firestore, 'scores', `${scoreForm.eventId}_${classId}`), {
-        eventId: scoreForm.eventId,
-        classId,
-        points: pointsValue,
-        updatedAt: serverTimestamp(),
-        updatedBy: user?.email ?? 'admin',
-      })
-    )
-    await Promise.all(ops)
-    setScoreForm({ eventId: scoreForm.eventId, classIds: [], points: '' })
+    try {
+      const ops = scoreForm.classIds.map((classId) =>
+        setDoc(doc(firestore, 'scores', `${scoreForm.eventId}_${classId}`), {
+          eventId: scoreForm.eventId,
+          classId,
+          points: pointsValue,
+          updatedAt: serverTimestamp(),
+          updatedBy: user?.email ?? 'admin',
+        })
+      )
+      await Promise.all(ops)
+      setScoreForm({ eventId: scoreForm.eventId, classIds: [], points: '' })
+    } catch (error) {
+      console.error('Ошибка сохранения баллов:', error)
+      alert(`Ошибка сохранения: ${error.message}`)
+    }
   }
 
   const handleToggleClass = (classId) => {
@@ -274,6 +308,41 @@ export default function AdminPage({ isAdmin, user, presence }) {
           <p className="muted text-small">
             Одиночное добавление — выберите один класс. Массовое — отметьте сразу несколько.
           </p>
+        </div>
+
+        <div className="card debug-panel">
+          <div className="card-header">
+            <div>
+              <h2>Debug</h2>
+              <p className="muted">Отображение данных из подписок</p>
+            </div>
+          </div>
+          <div className="debug-grid">
+            <div>
+              <p className="muted">Events loaded: {events.length}</p>
+              <ul>
+                {events
+                  .slice(-3)
+                  .reverse()
+                  .map((event) => (
+                    <li key={event.id}>
+                      {event.name} ({event.quarter} четв.)
+                    </li>
+                  ))}
+              </ul>
+            </div>
+            <div>
+              <p className="muted">Classes loaded: {classes.length}</p>
+              <ul>
+                {classes
+                  .slice(-3)
+                  .reverse()
+                  .map((cls) => (
+                    <li key={cls.id}>{cls.name}</li>
+                  ))}
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
       <aside className="grid-side">

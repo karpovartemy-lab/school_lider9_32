@@ -96,30 +96,45 @@ export default function TablePage({ isAdmin, presence }) {
 
   const handleUpdateScore = async (eventId, classId, value) => {
     const numeric = Number(value) || 0
-    await setDoc(doc(firestore, 'scores', `${eventId}_${classId}`), {
-      eventId,
-      classId,
-      points: numeric,
-      updatedAt: serverTimestamp(),
-    })
+    try {
+      await setDoc(doc(firestore, 'scores', `${eventId}_${classId}`), {
+        eventId,
+        classId,
+        points: numeric,
+        updatedAt: serverTimestamp(),
+      })
+    } catch (error) {
+      console.error('Ошибка сохранения баллов:', error)
+      alert(`Ошибка сохранения: ${error.message}`)
+    }
   }
 
   const handleDeleteEvent = async (event) => {
     if (!isAdmin) return
-    await deleteDoc(doc(firestore, 'events', event.id))
-    const scoresRef = collection(firestore, 'scores')
-    const q = query(scoresRef, where('eventId', '==', event.id))
-    const snapshot = await getDocs(q)
-    await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)))
+    try {
+      await deleteDoc(doc(firestore, 'events', event.id))
+      const scoresRef = collection(firestore, 'scores')
+      const q = query(scoresRef, where('eventId', '==', event.id))
+      const snapshot = await getDocs(q)
+      await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)))
+    } catch (error) {
+      console.error('Ошибка удаления мероприятия:', error)
+      alert(`Ошибка сохранения: ${error.message}`)
+    }
   }
 
   const handleDeleteClass = async (cls) => {
     if (!isAdmin) return
-    await deleteDoc(doc(firestore, 'classes', cls.id))
-    const scoresRef = collection(firestore, 'scores')
-    const q = query(scoresRef, where('classId', '==', cls.id))
-    const snapshot = await getDocs(q)
-    await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)))
+    try {
+      await deleteDoc(doc(firestore, 'classes', cls.id))
+      const scoresRef = collection(firestore, 'scores')
+      const q = query(scoresRef, where('classId', '==', cls.id))
+      const snapshot = await getDocs(q)
+      await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)))
+    } catch (error) {
+      console.error('Ошибка удаления класса:', error)
+      alert(`Ошибка сохранения: ${error.message}`)
+    }
   }
 
   return (
