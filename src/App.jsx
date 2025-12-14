@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 import { auth, firestore, rtdb } from './firebase'
@@ -16,11 +16,11 @@ function Header({ user, isAdmin, onLogout, onLogin, authError, username, passwor
     <header className="app-header">
       <div>
         <p className="muted">Школьный рейтинг</p>
-        <h1>Лидер-9: рейтинг учеников</h1>
+        <h1>Лидер-9: рейтинг классов</h1>
       </div>
       <div className="nav-links">
         <Link className={location.pathname === '/' ? 'active' : ''} to="/">
-          Победители
+          Лучший класс
         </Link>
         <Link className={location.pathname === '/table' ? 'active' : ''} to="/table">
           Полная таблица
@@ -154,19 +154,6 @@ export default function App() {
     await signOut(auth)
   }
 
-  const location = useLocation()
-  const formulaEditingRef = useRef(null)
-  useEffect(() => {
-    if (location.pathname === '/table') return
-    presenceWriter({ editing: null })
-  }, [location.pathname, presenceWriter])
-
-  const onEditingCellChange = (coords) => {
-    formulaEditingRef.current = coords
-    if (!user) return
-    presenceWriter({ editing: coords })
-  }
-
   const sharedPresence = useMemo(() => ({ list: presence, writer: presenceWriter }), [presence, presenceWriter])
 
   return (
@@ -192,7 +179,6 @@ export default function App() {
             element={
               <HomePage
                 presence={sharedPresence.list}
-                onEditingCellChange={onEditingCellChange}
                 isAdmin={isAdmin}
                 currentUserId={user?.uid}
               />
@@ -202,10 +188,8 @@ export default function App() {
             path="/table"
             element={
               <TablePage
-                user={user}
                 isAdmin={isAdmin}
                 presence={sharedPresence.list}
-                onEditingCellChange={onEditingCellChange}
               />
             }
           />

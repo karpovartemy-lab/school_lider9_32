@@ -1,64 +1,24 @@
-import { useCallback, useState } from 'react'
-import { collection, doc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore'
-import ImportDialog from '../components/ImportDialog'
+import { useMemo, useState } from 'react'
+import { addDoc, collection, deleteDoc, doc, serverTimestamp, setDoc } from 'firebase/firestore'
 import PresenceList from '../components/PresenceList'
-import useWorkbookData from '../hooks/useWorkbookData'
+import useRankingData from '../hooks/useRankingData'
 import { firestore } from '../firebase'
 
+const LETTER_SCHEMES = {
+  letters: ['а', 'б', 'в', 'г', 'д'],
+  numbers: ['.1', '.2', '.3', '.4', '.5'],
+}
+
 export default function AdminPage({ isAdmin, user, presence }) {
-  const [status, setStatus] = useState('')
-  const { meta } = useWorkbookData()
+  const { events, classes } = useRankingData()
+  const [eventForm, setEventForm] = useState({ name: '', quarter: '1' })
+  const [classForm, setClassForm] = useState({ parallel: '1', scheme: 'letters', single: '' })
+  const [scoreForm, setScoreForm] = useState({ eventId: '', classIds: [], points: '' })
+  const [isEditingEvents, setIsEditingEvents] = useState(false)
+  const [isEditingClasses, setIsEditingClasses] = useState(false)
 
-  const handleImport = useCallback(
-    async ({ meta: nextMeta, cells }) => {
-      if (!isAdmin) throw new Error('Только администратор может импортировать данные')
-      setStatus('Импортируем данные...')
-
-      const existing = await getDocs(collection(firestore, 'cells'))
-      const batches = []
-      let batch = writeBatch(firestore)
-      let ops = 0
-
-      const commitBatch = () => {
-        batches.push(batch.commit())
-        batch = writeBatch(firestore)
-        ops = 0
-      }
-
-      const metaRef = doc(firestore, 'meta', 'workbook')
-      batch.set(metaRef, nextMeta)
-      ops += 1
-
-      existing.forEach((docSnap) => {
-        batch.delete(docSnap.ref)
-        ops += 1
-        if (ops >= 400) commitBatch()
-      })
-
-      cells.forEach((cell) => {
-        const cellRef = doc(firestore, 'cells', `${cell.r}_${cell.c}`)
-        batch.set(
-          cellRef,
-          {
-            ...cell,
-            updatedAt: serverTimestamp(),
-            updatedBy: user?.email ?? 'import',
-          },
-          { merge: true }
-        )
-        ops += 1
-        if (ops >= 400) commitBatch()
-      })
-
-      if (ops > 0) {
-        batches.push(batch.commit())
-      }
-
-      await Promise.all(batches)
-      setStatus('Импорт завершен')
-    },
-    [isAdmin, user?.email]
-  )
+  const sortedEvents = useMemo(() => [...events].sort((a, b) => a.quarter - b.quarter), [events])
+  const sortedClasses = useMemo(() => [...classes].sort((a, b) => a.name.localeCompare(b.name)), [classes])
 
   if (!isAdmin) {
     return (
@@ -68,35 +28,252 @@ export default function AdminPage({ isAdmin, user, presence }) {
             <div className="card-header">
               <h2>Доступ ограничен</h2>
             </div>
-            <p className="muted">Только администраторы могут импортировать и редактировать данные.</p>
+            <p className="muted">Только администраторы могут управлять базой и баллами.</p>
           </div>
         </section>
       </div>
     )
   }
 
+  const handleAddEvent = async () => {
+    if (!eventForm.name.trim()) return
+    await addDoc(collection(firestore, 'events'), {
+      name: eventForm.name.trim(),
+      quarter: Number(eventForm.quarter) || 1,
+      createdAt: serverTimestamp(),
+    })
+    setEventForm({ name: '', quarter: eventForm.quarter })
+  }
+
+  const handleSaveEvents = async (nextEvents) => {
+    const batchWrites = nextEvents.map((item) => setDoc(doc(firestore, 'events', item.id), item))
+    const currentIds = new Set(nextEvents.map((e) => e.id))
+    const deletions = events.filter((e) => !currentIds.has(e.id)).map((e) => deleteDoc(doc(firestore, 'events', e.id)))
+    await Promise.all([...batchWrites, ...deletions])
+    setIsEditingEvents(false)
+  }
+
+  const handleAddClasses = async () => {
+    const base = classForm.parallel.trim()
+    if (!base) return
+    const suffixes = LETTER_SCHEMES[classForm.scheme]
+    const names = suffixes.map((suf) => `${base}${suf}`)
+    await Promise.all(
+      names.map((name) =>
+        addDoc(collection(firestore, 'classes'), {
+          name,
+          createdAt: serverTimestamp(),
+        })
+      )
+    )
+  }
+
+  const handleAddSingleClass = async () => {
+    if (!classForm.single.trim()) return
+    await addDoc(collection(firestore, 'classes'), {
+      name: classForm.single.trim(),
+      createdAt: serverTimestamp(),
+    })
+    setClassForm((prev) => ({ ...prev, single: '' }))
+  }
+
+  const handleSaveClasses = async (nextClasses) => {
+    const writers = nextClasses.map((cls) => setDoc(doc(firestore, 'classes', cls.id), cls))
+    const currentIds = new Set(nextClasses.map((c) => c.id))
+    const deletions = classes.filter((c) => !currentIds.has(c.id)).map((c) => deleteDoc(doc(firestore, 'classes', c.id)))
+    await Promise.all([...writers, ...deletions])
+    setIsEditingClasses(false)
+  }
+
+  const handleAddScore = async () => {
+    if (!scoreForm.eventId || scoreForm.classIds.length === 0) return
+    const pointsValue = Number(scoreForm.points) || 0
+    const ops = scoreForm.classIds.map((classId) =>
+      setDoc(doc(firestore, 'scores', `${scoreForm.eventId}_${classId}`), {
+        eventId: scoreForm.eventId,
+        classId,
+        points: pointsValue,
+        updatedAt: serverTimestamp(),
+        updatedBy: user?.email ?? 'admin',
+      })
+    )
+    await Promise.all(ops)
+    setScoreForm({ eventId: scoreForm.eventId, classIds: [], points: '' })
+  }
+
+  const handleToggleClass = (classId) => {
+    setScoreForm((prev) => {
+      const exists = prev.classIds.includes(classId)
+      return {
+        ...prev,
+        classIds: exists ? prev.classIds.filter((id) => id !== classId) : [...prev.classIds, classId],
+      }
+    })
+  }
+
   return (
     <div className="grid">
       <section className="grid-main">
-        <ImportDialog onImport={handleImport} />
         <div className="card">
           <div className="card-header">
             <div>
-              <h2>Текущая конфигурация</h2>
-              <p className="muted">{status || 'Обновите таблицу через импорт Excel'}</p>
+              <h2>Мероприятия</h2>
+              <p className="muted">Укажите четверть и название. Список сортируется автоматически.</p>
+            </div>
+            <button className="secondary" onClick={() => setIsEditingEvents((v) => !v)}>
+              {isEditingEvents ? 'Свернуть' : 'Редактировать'}
+            </button>
+          </div>
+          <div className="input-grid">
+            <div className="input-group">
+              <label>Четверть</label>
+              <select value={eventForm.quarter} onChange={(e) => setEventForm((prev) => ({ ...prev, quarter: e.target.value }))}>
+                {[1, 2, 3, 4].map((q) => (
+                  <option key={q} value={q}>
+                    {q}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="input-group">
+              <label>Название мероприятия</label>
+              <input
+                value={eventForm.name}
+                onChange={(e) => setEventForm((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="Например: День чтецов"
+              />
+            </div>
+            <button onClick={handleAddEvent}>Добавить мероприятие</button>
+          </div>
+          {isEditingEvents && (
+            <div className="editable-list">
+              {sortedEvents.map((event) => (
+                <div key={event.id} className="editable-row">
+                  <input
+                    className="small"
+                    type="number"
+                    min="1"
+                    max="4"
+                    value={event.quarter}
+                    onChange={(e) => (event.quarter = Number(e.target.value))}
+                  />
+                  <input
+                    value={event.name}
+                    onChange={(e) => (event.name = e.target.value)}
+                    className="flex"
+                  />
+                  <button onClick={() => handleSaveEvents(sortedEvents.filter((ev) => ev.id !== event.id))} className="danger">
+                    Удалить
+                  </button>
+                </div>
+              ))}
+              <button onClick={() => handleSaveEvents(sortedEvents)}>Сохранить</button>
+            </div>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h2>Классы</h2>
+              <p className="muted">Добавляйте классы массово или по одному</p>
+            </div>
+            <button className="secondary" onClick={() => setIsEditingClasses((v) => !v)}>
+              {isEditingClasses ? 'Свернуть' : 'Редактировать'}
+            </button>
+          </div>
+          <div className="input-grid">
+            <div className="input-group">
+              <label>Параллель</label>
+              <input
+                value={classForm.parallel}
+                onChange={(e) => setClassForm((prev) => ({ ...prev, parallel: e.target.value }))}
+                placeholder="1"
+              />
+            </div>
+            <div className="input-group">
+              <label>Схема</label>
+              <select value={classForm.scheme} onChange={(e) => setClassForm((prev) => ({ ...prev, scheme: e.target.value }))}>
+                <option value="letters">буквы: а–д</option>
+                <option value="numbers">цифры: .1 – .5</option>
+              </select>
+            </div>
+            <button onClick={handleAddClasses}>Размножить</button>
+          </div>
+          <div className="input-grid">
+            <div className="input-group">
+              <label>Добавить один класс</label>
+              <input
+                value={classForm.single}
+                onChange={(e) => setClassForm((prev) => ({ ...prev, single: e.target.value }))}
+                placeholder="Например: 7Б"
+              />
+            </div>
+            <button onClick={handleAddSingleClass}>Добавить один класс</button>
+          </div>
+          {isEditingClasses && (
+            <div className="editable-list">
+              {sortedClasses.map((cls) => (
+                <div key={cls.id} className="editable-row">
+                  <input value={cls.name} onChange={(e) => (cls.name = e.target.value)} className="flex" />
+                  <button onClick={() => handleSaveClasses(sortedClasses.filter((c) => c.id !== cls.id))} className="danger">
+                    Удалить
+                  </button>
+                </div>
+              ))}
+              <button onClick={() => handleSaveClasses(sortedClasses)}>Сохранить</button>
+            </div>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h2>Окно формирования таблицы</h2>
+              <p className="muted">Добавляйте баллы для выбранного мероприятия и классов</p>
             </div>
           </div>
-          <ul className="meta-list">
-            <li>
-              <strong>Строк:</strong> {meta.rows}
-            </li>
-            <li>
-              <strong>Столбцов:</strong> {meta.cols}
-            </li>
-            <li>
-              <strong>Колонки:</strong> {meta.colHeaders?.join(', ') || '—'}
-            </li>
-          </ul>
+          <div className="input-grid">
+            <div className="input-group">
+              <label>Мероприятие</label>
+              <select
+                value={scoreForm.eventId}
+                onChange={(e) => setScoreForm((prev) => ({ ...prev, eventId: e.target.value }))}
+              >
+                <option value="">Выберите мероприятие</option>
+                {sortedEvents.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name} — {event.quarter} четв.
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="input-group">
+              <label>Баллы</label>
+              <input
+                type="number"
+                value={scoreForm.points}
+                onChange={(e) => setScoreForm((prev) => ({ ...prev, points: e.target.value }))}
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div className="class-checkboxes">
+            {sortedClasses.map((cls) => (
+              <label key={cls.id} className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={scoreForm.classIds.includes(cls.id)}
+                  onChange={() => handleToggleClass(cls.id)}
+                />
+                {cls.name}
+              </label>
+            ))}
+          </div>
+          <button onClick={handleAddScore}>Добавить в таблицу</button>
+          <p className="muted text-small">
+            Одиночное добавление — выберите один класс. Массовое — отметьте сразу несколько.
+          </p>
         </div>
       </section>
       <aside className="grid-side">
